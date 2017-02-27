@@ -74,18 +74,14 @@ public class Instance {
 	}
 
 	// get the gray scale image
-	public double[][] getGrayImageDouble() {
-		// Gray filter
-		BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-		byte[] dstBuff = ((DataBufferByte) grayImage.getRaster().getDataBuffer()).getData();
-
-		double[][] doubleGreyImage = new double[grayImage.getWidth()][grayImage.getWidth()];
+	public double[][] getRedDouble() {
+		double[][] doubleRed = new double[red_channel.length][red_channel[0].length];
 		for(int row = 0; row < height; ++row) {
 			for(int col = 0; col < width; ++col) {
-				doubleGreyImage[row][col] = gray_image[row][col] = dstBuff[col + row * width] & 0xFF;
+				doubleRed[row][col] = (double)red_channel[row][col] / 255.0;
 			}
 		}
-		return doubleGreyImage;
+		return doubleRed;
 	}
 	
 	public int getWidth() {

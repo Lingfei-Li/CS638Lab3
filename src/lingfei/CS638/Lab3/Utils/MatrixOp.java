@@ -14,11 +14,13 @@ public class MatrixOp {
     private static final ElementOperator sigmoid = (value) -> MathUtil.sigmoid(value);
     private static final ElementOperator sigmoidDeriv = (value) -> MathUtil.sigmoidDeriv(value);
     private static final ElementOperator relu = (value) -> MathUtil.relu(value);
+    private static final ElementOperator reluDeriv = (value) -> MathUtil.reluDeriv(value);
     private static final ElementOperator zeroize = (value) -> 0;
 
     private interface BinaryElementOperator { double operateBinary(double value1, double value2); }
     private static final BinaryElementOperator add = (value1, value2) -> (value1 + value2);
-    private static final BinaryElementOperator multiply = (value1, value2) -> (value1 + value2);
+    private static final BinaryElementOperator divide = (value1, value2) -> (value1 / value2);
+    private static final BinaryElementOperator multiply = (value1, value2) -> (value1 * value2);
 
     /**
      * Perform the given scalar operation to each element
@@ -105,6 +107,11 @@ public class MatrixOp {
     public static double[][] multiplyScalar(double[][] mat, double scalar) { return scalarElementWiseOp(mat, scalar, multiply); }
 
     /**
+     * Divide a number to all matrix elements
+     * */
+    public static double[][] divideScalar(double[][] mat, double scalar) { return scalarElementWiseOp(mat, scalar, divide); }
+
+    /**
      * Apply sigmoid to all matrix elements
      * */
     public static double[][] sigmoid(double[][] mat) { return elementWiseOp(mat, sigmoid); }
@@ -119,11 +126,15 @@ public class MatrixOp {
      * */
     public static double[][] zeroize(double[][] mat) { return elementWiseOp(mat, zeroize); }
 
-
-        /**
-         * Apply rectified linear operation to all matrix elements
-         * */
+    /**
+     * Apply rectified linear operation to all matrix elements
+     * */
     public static double[][] relu(double[][] mat) { return elementWiseOp(mat, relu); }
+
+    /**
+     * Apply rectified linear operation to all matrix elements
+     * */
+    public static double[][] reluDeriv(double[][] mat) { return elementWiseOp(mat, reluDeriv); }
 
     /**
      * Sum all input matrix and return the result

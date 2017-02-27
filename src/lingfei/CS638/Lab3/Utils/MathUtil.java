@@ -1,6 +1,8 @@
 package lingfei.CS638.Lab3.Utils;
 
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 public class MathUtil {
 
@@ -20,15 +22,15 @@ public class MathUtil {
     /**
      * Produce a random number in the range of [-0.05, 0.05), for weight initialization
      * */
-    public static double randomWeight() { return (rand.nextDouble() - 0.5); }
+    public static double randomWeight() { return (rand.nextDouble() - 0.5)/1; }
 
     /**
      * Get the index of the maximum element in the array
      * */
     public static int argmax(double[] array) {
-        double maxVal = Double.MIN_VALUE;
-        int maxValIndex = -1;
-        for(int i = 0; i < array.length; i ++) {
+        double maxVal = array[0];
+        int maxValIndex = 0;
+        for(int i = 1; i < array.length; i ++) {
             if(array[i] > maxVal) {
                 maxVal = array[i];
                 maxValIndex = i;
@@ -45,5 +47,22 @@ public class MathUtil {
         array[hotPos] = 1;
         return array;
     }
+
+    /**
+     * Generate a randomly permuted array of given size within the given range
+     * */
+    public static int[] genPerm(int bound, int size) {
+        Set<Integer> set = new HashSet<>();
+        while (set.size() < size) {
+            set.add(rand.nextInt(bound));
+        }
+        int[] randPerm = new int[size];
+        int i = 0;
+        for (Integer value : set) {
+            randPerm[i++] = value;
+        }
+        return randPerm;
+    }
+
 }
 

@@ -24,7 +24,6 @@ public class FullyConnectedLayer extends Layer{
 
 
     public void computeOutput(Layer prevLayer) {
-
         //Each input element should match with one kernel element
         assert(prevLayer.outputMapSize.equals(this.kernelSize));
 
@@ -32,12 +31,14 @@ public class FullyConnectedLayer extends Layer{
             double[][] sumMat = new double[1][1];
             sumMat[0][0] = 0.0;
             for(int i = 0; i < prevLayer.outputMapsNum; i ++) {
-                sumMat[0][0] += MatrixOp.sum(MatrixOp.multiply(prevLayer.outputMaps[i], this.getKernel(i, j)));
+                double change = MatrixOp.sum(MatrixOp.multiply(prevLayer.getOutputMap(i), this.getKernel(i, j)));
+                sumMat[0][0] += change;
             }
 
             sumMat[0][0] += (-1) * this.bias[j];
 
             this.setOutputMap(j, MatrixOp.sigmoid(sumMat));
+//            this.setOutputMap(j, MatrixOp.relu(sumMat));
         }
     }
 

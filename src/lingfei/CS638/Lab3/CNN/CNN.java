@@ -16,21 +16,13 @@ public class CNN {
     private List<Layer> layers;
     private FCOutputLayer outputLayer;
 
-    public final static double learningRate = 0.1;
+    public final static double learningRate = 0.01;
+
 
     public CNN(Dataset trainset, Dataset tuneset, Dataset testset) {
         this.inputWidth = trainset.getImages().get(0).getWidth();
         this.inputHeight = trainset.getImages().get(0).getHeight();
-        this.inputDepth = 4;        //greyscale
-
-        int[][] img = trainset.getImages().get(0).getGreenChannel();
-        for(int i = 0; i < img.length; i ++) {
-            for(int j = 0; j < img[0].length; j ++) {
-                System.out.print(img[i][j] + "\t");
-            }
-            System.out.println();
-        }
-
+        this.inputDepth = 4;
 
         this.trainset = new ArrayList<>();
         for(Instance instance : trainset.getImages()) {
@@ -71,6 +63,92 @@ public class CNN {
 
     }
 
+
+    public void train() {
+        int maxEpoch = 1000;
+        for(int epoch = 0; epoch < maxEpoch; epoch ++) {
+//            int batchSize = 50;
+//            int[] perm = MathUtil.genPerm(this.trainset.size(), batchSize);
+            int classNum = 6;
+            int[][] confusionMatrix = new int[classNum][classNum];
+            double acc = 0.0;
+            for (int i = 0; i < this.trainset.size(); i++) {
+//                Record record = this.trainset.get(perm[i]);
+                Record record = this.trainset.get(i);
+                forward(record);
+                backprop(record);
+                updateParams();
+
+                int prediction = outputLayer.getPrediction();
+                confusionMatrix[record.label][prediction] ++;
+                if(prediction == record.label) {
+                    acc ++;
+                }
+            }
+            acc /= this.trainset.size();
+            System.out.println("Accuracy: " + acc);
+            for (int i = 0; i < confusionMatrix.length; i++) {
+                for (int j = 0; j < confusionMatrix[0].length; j++) {
+                    System.out.print("\t" + confusionMatrix[i][j]);
+                }
+                System.out.println();
+            }
+//            test(this.trainset);
+        }
+    }
+
+    public void test(List<Record> ds) {
+        int classNum = 6;
+        int[][] confusionMatrix = new int[classNum][classNum];
+        double acc = 0.0;
+        for(int i = 0; i < ds.size(); i ++) {
+            Record record = ds.get(i);
+            forward(record);
+            int prediction = outputLayer.getPrediction();
+            confusionMatrix[record.label][prediction] ++;
+            if(prediction == record.label) {
+                acc ++;
+            }
+        }
+        acc /= ds.size();
+        System.out.println("Accuracy: " + acc);
+        for (int i = 0; i < confusionMatrix.length; i++) {
+            for (int j = 0; j < confusionMatrix[0].length; j++) {
+                System.out.print("\t" + confusionMatrix[i][j]);
+            }
+            System.out.println();
+        }
+    }
+
+    public void forward(Record record) {
+        this.layers.get(0).setAllOutputMaps(record.data);
+
+        for(int l = 1; l < layers.size(); l ++) {
+            Layer prevLayer = layers.get(l-1);
+            Layer curLayer = layers.get(l);
+            curLayer.computeOutput(prevLayer);
+        }
+    }
+
+    public void backprop(Record record) {
+        //set error
+        outputLayer.setOutputLayerErrors(record);
+        for(int l = layers.size()-2; l >= 0; l --) {
+            layers.get(l).setHiddenLayerErrors(layers.get(l+1));
+        }
+    }
+
+    public void updateParams() {
+        //update parameters
+        for(int l = layers.size()-2; l >= 0; l --) {
+            layers.get(l).updateKernel(layers.get(l+1));
+        }
+
+        for(int l = layers.size()-1; l >= 0; l --) {
+            layers.get(l).updateBias();
+        }
+    }
+
     /**
      * Conducts initialization of outputMapSize, outputMaps, kernels
      * */
@@ -98,81 +176,11 @@ public class CNN {
                     throw new RuntimeException("ERROR: setup not implemented for " + curLayer.getClass().getSimpleName());
                 }
             }
-            //Init outputMap and error matrix
+            //Init outputMap and error matrix. BatchSize must be set at first
             curLayer.initOutputMaps();
             curLayer.initBias();
             curLayer.initErrors();
         }
     }
-
-
-    public void train() {
-
-        int maxEpoch = 10;
-        for(int epoch = 0; epoch < maxEpoch; epoch ++) {
-            double acc = 0.0;
-            for(Record record : this.trainset) {
-                if(this.trainOneRecord(record)) {
-                    acc ++;
-                }
-            }
-            System.out.println("Train acc: " + acc/this.trainset.size());
-        }
-    }
-
-    public boolean trainOneRecord(Record record) {
-        forward(record);
-        backprop(record);
-
-//        System.out.println("Prediction: " + outputLayer.getPrediction());
-        return record.label == outputLayer.getPrediction();
-    }
-
-    public void forward(Record record) {
-        this.layers.get(0).setAllOutputMaps(record.data);
-
-        for(int l = 1; l < layers.size(); l ++) {
-            Layer prevLayer = layers.get(l-1);
-            Layer curLayer = layers.get(l);
-            curLayer.computeOutput(prevLayer);
-        }
-    }
-
-    public void backprop(Record record) {
-        //set error
-        outputLayer.setOutputLayerErrors(record);
-        for(int l = layers.size()-2; l >= 0; l --) {
-            layers.get(l).setHiddenLayerErrors(layers.get(l+1));
-        }
-
-        //update parameters
-        for(int l = layers.size()-2; l >= 0; l --) {
-            layers.get(l).updateKernel(layers.get(l+1));
-        }
-
-        for(int l = layers.size()-1; l >= 0; l --) {
-            layers.get(l).updateBias();
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

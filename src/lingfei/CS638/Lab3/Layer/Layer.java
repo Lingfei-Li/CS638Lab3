@@ -19,7 +19,7 @@ public abstract class Layer {
 
     protected Size outputMapSize = null;
 
-    protected double[][][] outputMaps = null;
+    protected double[][][] outputMaps = null;     //outputMapsNum * outMapSize.x * outMapSize.y
 
     protected Size kernelSize = null;
 
@@ -30,20 +30,21 @@ public abstract class Layer {
     protected double[] bias = null;
 
 
+
     /* Different layers implement different computation method */
     abstract public void computeOutput(Layer prevLayer);
 
     public void setHiddenLayerErrors(Layer nextLayer) {
         if(nextLayer instanceof FullyConnectedLayer) {
 
-            assert(this.getOutputMapSize().equals(nextLayer.getKernelSize()));
+            assert(this.outputMapSize.equals(nextLayer.kernelSize));
 
-            for(int i = 0; i < this.getOutputMapsNum(); i ++) {
+            for(int i = 0; i < this.outputMapsNum; i ++) {
                 MatrixOp.zeroize(this.errors[i]);
                 for(int j = 0; j < nextLayer.getOutputMapsNum(); j ++) {
                     for(int m = 0; m < nextLayer.getKernelSize().x; m ++) {
                         for(int n = 0; n < nextLayer.getKernelSize().y; n ++) {
-                            this.errors[i][m][n] += nextLayer.getKernel(i, j)[m][n] * nextLayer.getErrors()[j][0][0];
+                            this.errors[i][m][n] += nextLayer.kernels[i][j][m][n] * nextLayer.errors[j][0][0];
                         }
                     }
                 }
@@ -51,12 +52,12 @@ public abstract class Layer {
             }
         }
         else if(nextLayer instanceof ConvolutionLayer) {
-            for(int i = 0; i < this.getOutputMapsNum(); i ++) {
+            for(int i = 0; i < this.outputMapsNum; i ++) {
                 MatrixOp.zeroize(this.errors[i]);
-                for(int j = 0; j < nextLayer.getOutputMapsNum(); j ++) {
+                for(int j = 0; j < nextLayer.outputMapsNum; j ++) {
 
                     double[][] rotatedKernel = MatrixOp.rot180(nextLayer.getKernel(i, j)) ;
-                    double[][] nextError = nextLayer.getErrors()[j];
+                    double[][] nextError = nextLayer.errors[j];
 
                     double[][] convFullResult = MatrixOp.convFull(nextError, rotatedKernel, 2);
                     this.errors[i]  = MatrixOp.add(this.errors[i], convFullResult);
@@ -73,7 +74,6 @@ public abstract class Layer {
     }
 
     public void updateBias() {
-
         for (int i = 0; i < this.outputMapsNum; i++) {
             double biasError = 0.0;
             for(int m = 0; m < this.outputMapSize.x; m ++) {
@@ -92,11 +92,14 @@ public abstract class Layer {
 
             for(int j = 0; j < nextLayer.outputMapsNum; j ++) {
                 for (int i = 0; i < this.outputMapsNum; i++) {
+                    double[][] deltaKernel = new double[nextLayer.kernelSize.x][nextLayer.kernelSize.y];
                     for(int m = 0; m < this.outputMapSize.x; m ++) {
                         for(int n = 0; n < this.outputMapSize.y; n ++) {
-                            nextLayer.kernels[i][j][m][n] += CNN.learningRate * this.getOutputMap(i)[m][n] * nextLayer.getErrors()[j][0][0];
+//                            nextLayer.kernels[i][j][m][n] += CNN.learningRate * this.getOutputMap(i)[m][n] * nextLayer.getErrors()[j][0][0];
+                            deltaKernel[m][n] += CNN.learningRate * this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
                         }
                     }
+                    nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], deltaKernel);
                 }
             }
         }
@@ -172,6 +175,20 @@ public abstract class Layer {
     public void setKernel(int inputMapNum, int outputMapNum, double[][] newKernel) { this.kernels[inputMapNum][outputMapNum] = newKernel; }
 
     public void setAllErrors(double[][][] errors) { this.errors = errors; }
+
+
+    public void printOutputMaps() {
+        for(int i = 0; i < outputMapsNum; i ++) {
+            for(int m = 0; m < outputMapSize.x; m ++) {
+                System.out.println();
+                for(int n = 0; n < outputMapSize.y; n ++) {
+                    System.out.print(this.outputMaps[i][m][n] + " ");
+                }
+            }
+            System.out.println();
+        }
+    }
+
 
 }
 

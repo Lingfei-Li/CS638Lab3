@@ -13,7 +13,8 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
         double[][][] errors = new double[outputMapsNum][1][1];
 
         for(int i = 0; i < outputMapsNum; i ++) {
-            errors[i][0][0] = MathUtil.sigmoidDeriv(outputMaps[i][0][0]) * (oneHotArray[i] - outputMaps[i][0][0]);
+            errors[i][0][0] = MathUtil.sigmoidDeriv(getOutputMap(i)[0][0]) * (oneHotArray[i] - getOutputMap(i)[0][0]);
+//            errors[i][0][0] = MathUtil.reluDeriv(getOutputMap(i)[0][0]) * (oneHotArray[i] - getOutputMap(i)[0][0]);
         }
 
         setAllErrors(errors);
@@ -22,8 +23,10 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
     public int getPrediction() {
         double[] output = new double[outputMapsNum];
         for(int i = 0; i < outputMapsNum; i ++) {
-            output[i] = outputMaps[i][0][0];
+            output[i] = getOutputMap(i)[0][0];
+//            System.out.print(output[i] + " ");
         }
+//        System.out.println();
         return MathUtil.argmax(output);
     }
 
