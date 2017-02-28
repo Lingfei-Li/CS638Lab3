@@ -5,6 +5,7 @@ import lingfei.CS638.Lab3.Layer.*;
 import lingfei.CS638.Lab3.Utils.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -15,6 +16,8 @@ public class CNN {
     private List<Record> trainset, tuneset, testset;
     private List<Layer> layers;
     private FCOutputLayer outputLayer;
+    private List<Double> trainCurve;
+    private List<Double> tuneCurve;
 
     public final static double learningRate = 0.01;
 
@@ -49,31 +52,61 @@ public class CNN {
         }
 
 
-        //Things to be initialized:
-        // outputMapsNum, outputMapSize, outputMap
-        // kernelSize
-
+        //Add layers to the network
         this.layers = new ArrayList<>();
-        this.layers.add(new InputLayer(inputDepth, new Size(inputHeight, inputWidth)));             //params: (# of channels, size of each image)
-//        this.layers.add(new ConvolutionLayer(4, new Size(3, 3)));             //params: (# of filters, size of each filter)
-        this.layers.add(new FullyConnectedLayer(10));                            //# of hidden units
-        this.layers.add(outputLayer = new FCOutputLayer(6));                    //# of outputs (categories)
+        this.layers.add(new InputLayer(inputDepth,
+                new Size(inputHeight, inputWidth)));                    //params: (# of channels, size of each image)
+        this.layers.add(new ConvolutionLayer(15, new Size(3, 3)));       //params: (# of filters, size of each filter)
+        this.layers.add(new MaxPoolingLayer());
+        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
+        this.layers.add(new MaxPoolingLayer());
+        this.layers.add(new FullyConnectedLayer(20));                   //# of hidden units
+        this.layers.add(outputLayer = new FCOutputLayer(6));            //# of outputs (categories)
 
         setup();
 
     }
 
 
+    public static double activationFunc(double t) {
+//        return MathUtil.relu(t);
+        return MathUtil.sigmoid(t);
+    }
+
+    public static double actionvationFuncDeriv(double t) {
+//        return MathUtil.reluDeriv(t);
+        return MathUtil.sigmoidDeriv(t);
+    }
+
+    public static double[][] activationFunc(double[][] mat) {
+//        return MatrixOp.relu(mat);
+        return MatrixOp.sigmoid(mat);
+    }
+    public static double[][] activationFuncDeriv(double[][] mat) {
+//        return MatrixOp.reluDeriv(mat);
+        return MatrixOp.sigmoidDeriv(mat);
+    }
+
+
     public void train() {
-        int maxEpoch = 1000;
-        for(int epoch = 0; epoch < maxEpoch; epoch ++) {
-//            int batchSize = 50;
-//            int[] perm = MathUtil.genPerm(this.trainset.size(), batchSize);
+        int maxEpoch = 200;
+        trainCurve = new ArrayList<>();
+        tuneCurve = new ArrayList<>();
+        double tuneAcc = 0;
+        double prevTuneAcc = 0;
+        int tuneAccDecreaseCnt = 0;
+        int maxTuneAccDecreaseCnt = 5;
+
+        boolean earlyStopped = false;
+        for(int epoch = 0; epoch < maxEpoch && !earlyStopped ; epoch ++) {
+            System.out.println("Epoch #" + epoch);
             int classNum = 6;
             int[][] confusionMatrix = new int[classNum][classNum];
             double acc = 0.0;
+
+            Collections.shuffle(this.trainset);
+
             for (int i = 0; i < this.trainset.size(); i++) {
-//                Record record = this.trainset.get(perm[i]);
                 Record record = this.trainset.get(i);
                 forward(record);
                 backprop(record);
@@ -86,18 +119,43 @@ public class CNN {
                 }
             }
             acc /= this.trainset.size();
-            System.out.println("Accuracy: " + acc);
+            System.out.println("Train Accuracy: " + acc);
             for (int i = 0; i < confusionMatrix.length; i++) {
                 for (int j = 0; j < confusionMatrix[0].length; j++) {
                     System.out.print("\t" + confusionMatrix[i][j]);
                 }
                 System.out.println();
             }
-//            test(this.trainset);
+
+            System.out.println();
+
+
+            //Early Stopping
+            tuneAcc = test(this.tuneset, true);
+            System.out.println("Tune Accuracy: " + tuneAcc);
+            if(tuneAcc <= prevTuneAcc) {
+                tuneAccDecreaseCnt ++;
+                if( tuneAccDecreaseCnt >= maxTuneAccDecreaseCnt) {
+                    earlyStopped = true;
+                }
+            }
+            else {
+                tuneAccDecreaseCnt = 0;
+            }
+            prevTuneAcc = tuneAcc;
+
+            trainCurve.add(acc);
+            tuneCurve.add(tuneAcc);
         }
+        double testAcc = test(this.testset, true);
+        System.out.println("Test set Accuracy: " + testAcc);
+
+        PlotUtil plotUtil = new PlotUtil("Learning Curve");
+        plotUtil.plot("Training and Tuning Set Learning Curve", trainCurve, tuneCurve);
+
     }
 
-    public void test(List<Record> ds) {
+    public double test(List<Record> ds, boolean printResult) {
         int classNum = 6;
         int[][] confusionMatrix = new int[classNum][classNum];
         double acc = 0.0;
@@ -111,13 +169,17 @@ public class CNN {
             }
         }
         acc /= ds.size();
-        System.out.println("Accuracy: " + acc);
-        for (int i = 0; i < confusionMatrix.length; i++) {
-            for (int j = 0; j < confusionMatrix[0].length; j++) {
-                System.out.print("\t" + confusionMatrix[i][j]);
+        if(printResult) {
+//            System.out.println("Accuracy: " + acc);
+            System.out.println("Confusion Matrix: ");
+            for (int i = 0; i < confusionMatrix.length; i++) {
+                for (int j = 0; j < confusionMatrix[0].length; j++) {
+                    System.out.print("\t" + confusionMatrix[i][j]);
+                }
+                System.out.println();
             }
-            System.out.println();
         }
+        return acc;
     }
 
     public void forward(Record record) {
@@ -170,17 +232,22 @@ public class CNN {
                 else if(curLayer instanceof FullyConnectedLayer){
                     curLayer.setKernelSize(prevLayer.getOutputMapSize());
                     curLayer.initKernels(inputMapsNum);
-//                curLayer.setOutputMapSize(new Size(1, 1));
+                }
+                else if(curLayer instanceof MaxPoolingLayer) {
+                    curLayer.setOutputMapsNum(inputMapsNum);
+                    curLayer.setOutputMapSize(prevLayer.getOutputMapSize().plus(1).divide(2));
+                    curLayer.setKernelSize(prevLayer.getOutputMapSize());
+                    curLayer.initKernels(inputMapsNum);
                 }
                 else {
                     throw new RuntimeException("ERROR: setup not implemented for " + curLayer.getClass().getSimpleName());
                 }
             }
-            //Init outputMap and error matrix. BatchSize must be set at first
             curLayer.initOutputMaps();
             curLayer.initBias();
             curLayer.initErrors();
         }
     }
+
 
 }

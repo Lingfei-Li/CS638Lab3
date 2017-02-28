@@ -48,7 +48,7 @@ public abstract class Layer {
                         }
                     }
                 }
-                this.errors[i] = MatrixOp.multiply(MatrixOp.sigmoidDeriv(this.outputMaps[i]), this.errors[i]);
+                this.errors[i] = MatrixOp.multiply(CNN.activationFuncDeriv(this.outputMaps[i]), this.errors[i]);
             }
         }
         else if(nextLayer instanceof ConvolutionLayer) {
@@ -62,11 +62,26 @@ public abstract class Layer {
                     double[][] convFullResult = MatrixOp.convFull(nextError, rotatedKernel, 2);
                     this.errors[i]  = MatrixOp.add(this.errors[i], convFullResult);
                 }
-                this.errors[i] = MatrixOp.multiply(MatrixOp.sigmoidDeriv(this.outputMaps[i]), this.errors[i]);
+                this.errors[i] = MatrixOp.multiply(CNN.activationFuncDeriv(this.outputMaps[i]), this.errors[i]);
             }
         }
-        else if(nextLayer instanceof  PoolingLayer) {
-            System.out.println("Next layer is pooling layer");
+        else if(nextLayer instanceof  MaxPoolingLayer) {
+
+            for(int i = 0; i < this.outputMapsNum; i ++) {
+                for (int x = 0; x < nextLayer.outputMapSize.x; x ++) {
+                    for (int y = 0; y < nextLayer.outputMapSize.y; y ++) {
+                        for(int m = 0; m < 2; m ++) {
+                            for (int n = 0; n < 2; n++) {
+                                int row = x*2 + m;
+                                int col = y*2 + n;
+                                if(row < this.errors[i].length && col < this.errors[i][0].length) {
+                                    this.errors[i][row][col] = nextLayer.kernels[i][0][row][col] * nextLayer.errors[i][x][y];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         else {
             throw new RuntimeException("setHiddenLayerErrors not implemented for " + nextLayer.getClass().getSimpleName());
@@ -95,7 +110,6 @@ public abstract class Layer {
                     double[][] deltaKernel = new double[nextLayer.kernelSize.x][nextLayer.kernelSize.y];
                     for(int m = 0; m < this.outputMapSize.x; m ++) {
                         for(int n = 0; n < this.outputMapSize.y; n ++) {
-//                            nextLayer.kernels[i][j][m][n] += CNN.learningRate * this.getOutputMap(i)[m][n] * nextLayer.getErrors()[j][0][0];
                             deltaKernel[m][n] += CNN.learningRate * this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
                         }
                     }
@@ -115,8 +129,8 @@ public abstract class Layer {
                 }
             }
         }
-        else if(nextLayer instanceof  PoolingLayer) {
-            System.out.println("Next layer is pooling layer");
+        else if(nextLayer instanceof  MaxPoolingLayer) {
+            //No need for kernel update for Max Pooling Layer
         }
         else {
             throw new RuntimeException("setHiddenLayerErrors not implemented for " + nextLayer.getClass().getSimpleName());

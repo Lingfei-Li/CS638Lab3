@@ -8,9 +8,7 @@ public class MatrixOp {
 
     private static Random random = new Random();
 
-    private interface ElementOperator {
-        double operate(double value);
-    }
+    private interface ElementOperator { double operate(double value); }
     private static final ElementOperator sigmoid = (value) -> MathUtil.sigmoid(value);
     private static final ElementOperator sigmoidDeriv = (value) -> MathUtil.sigmoidDeriv(value);
     private static final ElementOperator relu = (value) -> MathUtil.relu(value);
@@ -145,7 +143,7 @@ public class MatrixOp {
         double result = 0;
         for(int i = 0; i < w; i ++) {
             for(int j = 0; j < h; j ++) {
-                result = mat[i][j];
+                result += mat[i][j];
             }
         }
         return result;

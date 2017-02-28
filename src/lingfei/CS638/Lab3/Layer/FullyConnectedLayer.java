@@ -1,6 +1,7 @@
 package lingfei.CS638.Lab3.Layer;
 
 
+import lingfei.CS638.Lab3.CNN.CNN;
 import lingfei.CS638.Lab3.Utils.MatrixOp;
 import lingfei.CS638.Lab3.Utils.Size;
 
@@ -37,8 +38,7 @@ public class FullyConnectedLayer extends Layer{
 
             sumMat[0][0] += (-1) * this.bias[j];
 
-            this.setOutputMap(j, MatrixOp.sigmoid(sumMat));
-//            this.setOutputMap(j, MatrixOp.relu(sumMat));
+            this.setOutputMap(j, CNN.activationFunc(sumMat));
         }
     }
 
