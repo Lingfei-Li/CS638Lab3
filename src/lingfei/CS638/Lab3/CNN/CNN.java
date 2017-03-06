@@ -19,13 +19,13 @@ public class CNN {
     private List<Double> trainCurve;
     private List<Double> tuneCurve;
 
-    public final static double learningRate = 0.01;
+    public final static double learningRate = 0.001;
 
 
     public CNN(Dataset trainset, Dataset tuneset, Dataset testset) {
         this.inputWidth = trainset.getImages().get(0).getWidth();
         this.inputHeight = trainset.getImages().get(0).getHeight();
-        this.inputDepth = 4;
+        this.inputDepth = 3;
 
         this.trainset = new ArrayList<>();
         for(Instance instance : trainset.getImages()) {
@@ -56,36 +56,22 @@ public class CNN {
         this.layers = new ArrayList<>();
         this.layers.add(new InputLayer(inputDepth,
                 new Size(inputHeight, inputWidth)));                    //params: (# of channels, size of each image)
-        this.layers.add(new ConvolutionLayer(15, new Size(3, 3)));       //params: (# of filters, size of each filter)
-        this.layers.add(new MaxPoolingLayer());
-        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
-        this.layers.add(new MaxPoolingLayer());
-        this.layers.add(new FullyConnectedLayer(20));                   //# of hidden units
+
+//        this.layers.add(new ConvolutionLayer(20, new Size(3, 3)));       //params: (# of filters, size of each filter)
+//        this.layers.add(new MaxPoolingLayer());
+//        this.layers.add(new ConvolutionLayer(20, new Size(3, 3)));       //params: (# of filters, size of each filter)
+//        this.layers.add(new MaxPoolingLayer());
+
+//        this.layers.add(new ConvolutionLayer(20, new Size(3, 3), new Activation.LeakyReluActivation()));       //params: (# of filters, size of each filter)
+//        this.layers.add(new MaxPoolingLayer());
+
+        this.layers.add(new FullyConnectedLayer(20, new Activation.LeakyReluActivation()));                   //# of hidden units
+//        this.layers.add(new FullyConnectedLayer(20));                   //# of hidden units
         this.layers.add(outputLayer = new FCOutputLayer(6));            //# of outputs (categories)
 
         setup();
-
     }
 
-
-    public static double activationFunc(double t) {
-//        return MathUtil.relu(t);
-        return MathUtil.sigmoid(t);
-    }
-
-    public static double actionvationFuncDeriv(double t) {
-//        return MathUtil.reluDeriv(t);
-        return MathUtil.sigmoidDeriv(t);
-    }
-
-    public static double[][] activationFunc(double[][] mat) {
-//        return MatrixOp.relu(mat);
-        return MatrixOp.sigmoid(mat);
-    }
-    public static double[][] activationFuncDeriv(double[][] mat) {
-//        return MatrixOp.reluDeriv(mat);
-        return MatrixOp.sigmoidDeriv(mat);
-    }
 
 
     public void train() {
@@ -107,6 +93,7 @@ public class CNN {
             Collections.shuffle(this.trainset);
 
             for (int i = 0; i < this.trainset.size(); i++) {
+//                System.out.println("Train #" + i);
                 Record record = this.trainset.get(i);
                 forward(record);
                 backprop(record);
@@ -117,6 +104,8 @@ public class CNN {
                 if(prediction == record.label) {
                     acc ++;
                 }
+
+
             }
             acc /= this.trainset.size();
             System.out.println("Train Accuracy: " + acc);
@@ -133,16 +122,19 @@ public class CNN {
             //Early Stopping
             tuneAcc = test(this.tuneset, true);
             System.out.println("Tune Accuracy: " + tuneAcc);
-            if(tuneAcc <= prevTuneAcc) {
-                tuneAccDecreaseCnt ++;
-                if( tuneAccDecreaseCnt >= maxTuneAccDecreaseCnt) {
-                    earlyStopped = true;
+            if(epoch > 20) {
+                if(tuneAcc <= prevTuneAcc) {
+                    tuneAccDecreaseCnt ++;
+                    if( tuneAccDecreaseCnt >= maxTuneAccDecreaseCnt) {
+                        earlyStopped = true;
+                    }
                 }
+                else {
+                    tuneAccDecreaseCnt = 0;
+                }
+                prevTuneAcc = tuneAcc;
+
             }
-            else {
-                tuneAccDecreaseCnt = 0;
-            }
-            prevTuneAcc = tuneAcc;
 
             trainCurve.add(acc);
             tuneCurve.add(tuneAcc);
@@ -170,7 +162,6 @@ public class CNN {
         }
         acc /= ds.size();
         if(printResult) {
-//            System.out.println("Accuracy: " + acc);
             System.out.println("Confusion Matrix: ");
             for (int i = 0; i < confusionMatrix.length; i++) {
                 for (int j = 0; j < confusionMatrix[0].length; j++) {

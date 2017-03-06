@@ -13,6 +13,8 @@ public class MatrixOp {
     private static final ElementOperator sigmoidDeriv = (value) -> MathUtil.sigmoidDeriv(value);
     private static final ElementOperator relu = (value) -> MathUtil.relu(value);
     private static final ElementOperator reluDeriv = (value) -> MathUtil.reluDeriv(value);
+    private static final ElementOperator reluLeaky = (value) -> MathUtil.reluLeaky(value);
+    private static final ElementOperator reluLeakyDeriv = (value) -> MathUtil.reluLeakyDeriv(value);
     private static final ElementOperator zeroize = (value) -> 0;
 
     private interface BinaryElementOperator { double operateBinary(double value1, double value2); }
@@ -132,7 +134,17 @@ public class MatrixOp {
     /**
      * Apply rectified linear operation to all matrix elements
      * */
+
     public static double[][] reluDeriv(double[][] mat) { return elementWiseOp(mat, reluDeriv); }
+    /**
+     * Apply rectified linear operation to all matrix elements
+     * */
+    public static double[][] reluLeaky(double[][] mat) { return elementWiseOp(mat, reluLeaky); }
+
+    /**
+     * Apply rectified linear operation to all matrix elements
+     * */
+    public static double[][] reluLeakyDeriv(double[][] mat) { return elementWiseOp(mat, reluLeakyDeriv); }
 
     /**
      * Sum all input matrix and return the result
@@ -260,6 +272,24 @@ public class MatrixOp {
         return matrix;
     }
 
+    public static double[] positiveRandomArray(int len) {
+        double[] array = new double[len];
+        for (int i = 0; i < len; i++) {
+            array[i] = MathUtil.positiveRandomWeight();
+        }
+        return array;
+    }
+
+    public static double[][] positiveRandomMatrix(int x, int y) {
+        double[][] matrix = new double[x][y];
+        for (int i = 0; i < x; i++) {
+            for (int j = 0; j < y; j++) {
+                matrix[i][j] = MathUtil.positiveRandomWeight();
+            }
+        }
+        return matrix;
+    }
+
     public static void printMat(double[][] mat) {
         int w = mat.length;
         int h = mat[0].length;
@@ -291,20 +321,11 @@ public class MatrixOp {
         double[][] mat = new double[w][h];
         for(int i = 0; i < w; i ++) {
             for(int j = 0; j < h; j ++) {
-                mat[i][j] = 1;
+                mat[i][j] = 1.6;
             }
         }
+        MatrixOp.printMat( MatrixOp.sigmoidDeriv(mat));
 
-        double[][] kernel = new double[3][3];
-        for(int i = 0; i < 3; i ++) {
-            for(int j = 0; j < 3; j ++) {
-                kernel[i][j] = 1;
-            }
-        }
-
-        printMat(mat);
-        printMat(kernel);
-        printMat(convFull(mat, kernel));
 
 
     }

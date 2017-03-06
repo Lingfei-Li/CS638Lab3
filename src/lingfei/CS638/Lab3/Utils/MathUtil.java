@@ -19,10 +19,19 @@ public class MathUtil {
 
     public static double reluDeriv(double val) { return (val > 0) ? 1 : 0; }
 
+    public static double reluLeaky(double t) {
+        if(t < 0) {
+            return 0.1*t;
+        }
+        return t;
+    }
+    public static double reluLeakyDeriv(double val) { return (val > 0) ? 1 : 0.1; }
+
     /**
      * Produce a random number in the range of [-0.05, 0.05), for weight initialization
      * */
-    public static double randomWeight() { return (rand.nextDouble() - 0.5)/1; }
+    public static double randomWeight() { return (rand.nextDouble() - 0.5)/10; }
+    public static double positiveRandomWeight() { return rand.nextDouble()/10; }
 
     /**
      * Get the index of the maximum element in the array

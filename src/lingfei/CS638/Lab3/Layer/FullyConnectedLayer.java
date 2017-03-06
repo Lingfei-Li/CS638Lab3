@@ -2,6 +2,7 @@ package lingfei.CS638.Lab3.Layer;
 
 
 import lingfei.CS638.Lab3.CNN.CNN;
+import lingfei.CS638.Lab3.Utils.Activation;
 import lingfei.CS638.Lab3.Utils.MatrixOp;
 import lingfei.CS638.Lab3.Utils.Size;
 
@@ -13,12 +14,18 @@ public class FullyConnectedLayer extends Layer{
         this.outputMapSize = new Size(1, 1);
     }
 
+    public FullyConnectedLayer(int outputMapsNum, Activation activationFunc) {
+        this.outputMapsNum = outputMapsNum;
+        this.outputMapSize = new Size(1, 1);
+        this.activationFunc = activationFunc;
+    }
+
 
     public void initKernels(int inputMapsNum) {
         this.kernels = new double[inputMapsNum][outputMapsNum][][];
         for(int i = 0; i < inputMapsNum; i ++) {
             for(int j = 0; j < outputMapsNum; j ++) {
-                this.kernels[i][j] = MatrixOp.randomMatrix(kernelSize.x, kernelSize.y);
+                this.kernels[i][j] = activationFunc.getRandomMatrix(kernelSize.x, kernelSize.y);
             }
         }
     }
@@ -36,9 +43,10 @@ public class FullyConnectedLayer extends Layer{
                 sumMat[0][0] += change;
             }
 
+
             sumMat[0][0] += (-1) * this.bias[j];
 
-            this.setOutputMap(j, CNN.activationFunc(sumMat));
+            this.setOutputMap(j, activationFunc.activation(sumMat));
         }
     }
 

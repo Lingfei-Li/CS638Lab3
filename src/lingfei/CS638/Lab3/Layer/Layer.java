@@ -3,6 +3,7 @@ package lingfei.CS638.Lab3.Layer;
 
 import lingfei.CS638.Lab3.CNN.CNN;
 import lingfei.CS638.Lab3.Data.Record;
+import lingfei.CS638.Lab3.Utils.Activation;
 import lingfei.CS638.Lab3.Utils.MathUtil;
 import lingfei.CS638.Lab3.Utils.MatrixOp;
 import lingfei.CS638.Lab3.Utils.Size;
@@ -29,6 +30,8 @@ public abstract class Layer {
 
     protected double[] bias = null;
 
+    protected Activation activationFunc = new Activation.SigmoidActivation();
+
 
 
     /* Different layers implement different computation method */
@@ -36,7 +39,6 @@ public abstract class Layer {
 
     public void setHiddenLayerErrors(Layer nextLayer) {
         if(nextLayer instanceof FullyConnectedLayer) {
-
             assert(this.outputMapSize.equals(nextLayer.kernelSize));
 
             for(int i = 0; i < this.outputMapsNum; i ++) {
@@ -48,7 +50,7 @@ public abstract class Layer {
                         }
                     }
                 }
-                this.errors[i] = MatrixOp.multiply(CNN.activationFuncDeriv(this.outputMaps[i]), this.errors[i]);
+                this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
             }
         }
         else if(nextLayer instanceof ConvolutionLayer) {
@@ -62,7 +64,7 @@ public abstract class Layer {
                     double[][] convFullResult = MatrixOp.convFull(nextError, rotatedKernel, 2);
                     this.errors[i]  = MatrixOp.add(this.errors[i], convFullResult);
                 }
-                this.errors[i] = MatrixOp.multiply(CNN.activationFuncDeriv(this.outputMaps[i]), this.errors[i]);
+                this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
             }
         }
         else if(nextLayer instanceof  MaxPoolingLayer) {
@@ -114,6 +116,8 @@ public abstract class Layer {
                         }
                     }
                     nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], deltaKernel);
+
+                    nextLayer.setKernel(i, j, MatrixOp.add(nextLayer.getKernel(i, j), deltaKernel));
                 }
             }
         }
@@ -143,7 +147,7 @@ public abstract class Layer {
             for(int j = 0; j < kernels[0].length; j ++) {
                 for(int m = 0; m < kernelSize.x; m ++) {
                     for(int n = 0; n < kernelSize.y; n ++) {
-                        System.out.println(kernels[i][j][m][n] + "\t");
+                        System.out.print(kernels[i][j][m][n] + "\t");
                     }
                 }
                 System.out.println();

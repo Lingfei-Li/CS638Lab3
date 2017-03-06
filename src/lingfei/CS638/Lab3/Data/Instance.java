@@ -107,13 +107,13 @@ public class Instance {
      * Convert 0-255 int array in RGBGrey to 4D 0-1 double array
      * */
 	public double[][][] getAllChannelMatrix() {
-		double[][][] result = new double[4][width][height];
+		double[][][] result = new double[3][width][height];
 		for (int i = 0; i < width; i ++) {
 			for(int j = 0; j < height; j ++) {
 				result[0][i][j] = (double)this.red_channel[i][j] / 255.0;
 				result[1][i][j] = (double)this.green_channel[i][j] / 255.0;
 				result[2][i][j] = (double)this.blue_channel[i][j] / 255.0;
-				result[3][i][j] = (double)this.gray_image[i][j] / 255.0;
+//				result[3][i][j] = (double)this.gray_image[i][j] / 255.0;
 			}
 		}
 		return result;
