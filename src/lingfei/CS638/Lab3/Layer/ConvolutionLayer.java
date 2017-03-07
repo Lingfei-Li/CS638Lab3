@@ -35,10 +35,15 @@ public class ConvolutionLayer extends Layer {
                 if(curOutputMap == null) {
                     curOutputMap = MatrixOp.convValid( prevLayer.getOutputMap(i), this.getKernel(i, j));
                 } else {
-                    MatrixOp.add(curOutputMap, MatrixOp.convValid( prevLayer.getOutputMap(i), getKernel(i, j)) );
+                    curOutputMap = MatrixOp.add(curOutputMap, MatrixOp.convValid( prevLayer.getOutputMap(i), getKernel(i, j)) );
                 }
             }
 
+//            if(activationFunc.activation(curOutputMap)[j][0] > 100) {
+//                System.out.println("outputmap for conv");
+//                MatrixOp.printMat(activationFunc.activation(curOutputMap));
+////                System.exit(-1);
+//            }
             this.setOutputMap(j, activationFunc.activation(curOutputMap));
 
 //            MatrixOp.printMat(this.outputMaps[j]);

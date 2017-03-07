@@ -30,7 +30,9 @@ public abstract class Layer {
 
     protected double[] bias = null;
 
-    protected Activation activationFunc = new Activation.SigmoidActivation();
+    //Activation function for non-output layers
+//    protected Activation activationFunc = new Activation.SigmoidActivation();
+    protected Activation activationFunc = new Activation.LeakyReluActivation();
 
 
 
@@ -51,6 +53,18 @@ public abstract class Layer {
                     }
                 }
                 this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
+
+                if(this.errors[i][0][0] > 10) {
+//                    System.out.println("error for nextlayer is fc:");
+//                    MatrixOp.printMat(this.errors[i]);
+//                    System.out.println("outmap:");
+//                    MatrixOp.printMat(this.outputMaps[i]);
+//                    System.out.println("activation derive:");
+//                    MatrixOp.printMat(activationFunc.activationDeriv(this.outputMaps[i]));
+
+
+//                    System.exit(-1);
+                }
             }
         }
         else if(nextLayer instanceof ConvolutionLayer) {
@@ -65,10 +79,15 @@ public abstract class Layer {
                     this.errors[i]  = MatrixOp.add(this.errors[i], convFullResult);
                 }
                 this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
+
+                if(this.errors[i][0][0] > 10) {
+//                    System.out.println("error for nextlayer is conv:");
+//                    MatrixOp.printMat(this.errors[i]);
+//                    System.exit(-1);
+                }
             }
         }
         else if(nextLayer instanceof  MaxPoolingLayer) {
-
             for(int i = 0; i < this.outputMapsNum; i ++) {
                 for (int x = 0; x < nextLayer.outputMapSize.x; x ++) {
                     for (int y = 0; y < nextLayer.outputMapSize.y; y ++) {
@@ -83,6 +102,12 @@ public abstract class Layer {
                         }
                     }
                 }
+                if(this.errors[i][0][0] > 10) {
+//                    System.out.println("error for nextlayer is max pool:");
+//                    MatrixOp.printMat(this.errors[i]);
+//                    System.exit(-1);
+                }
+                this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
             }
         }
         else {
@@ -115,9 +140,12 @@ public abstract class Layer {
                             deltaKernel[m][n] += CNN.learningRate * this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
                         }
                     }
+                    if(deltaKernel[0][0] > 10) {
+//                        System.out.println("deltaKernel for fc:");
+//                        MatrixOp.printMat(deltaKernel);
+//                        System.exit(-1);
+                    }
                     nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], deltaKernel);
-
-                    nextLayer.setKernel(i, j, MatrixOp.add(nextLayer.getKernel(i, j), deltaKernel));
                 }
             }
         }
@@ -129,6 +157,11 @@ public abstract class Layer {
 
                     deltaKernel = MatrixOp.multiplyScalar(deltaKernel, CNN.learningRate);
 
+                    if(deltaKernel[0][0] > 10) {
+//                        System.out.println("deltaKernel for conv:");
+//                        MatrixOp.printMat(deltaKernel);
+//                        System.exit(-1);
+                    }
                     nextLayer.setKernel(i, j, MatrixOp.add(nextLayer.getKernel(i, j), deltaKernel));
                 }
             }

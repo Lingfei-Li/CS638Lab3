@@ -46,6 +46,12 @@ public class FullyConnectedLayer extends Layer{
 
             sumMat[0][0] += (-1) * this.bias[j];
 
+//            if(activationFunc.activation(sumMat)[0][0] > 100) {
+//                System.out.println("outputmap for fc");
+//                MatrixOp.printMat(activationFunc.activation(sumMat));
+//                System.exit(-1);
+//            }
+
             this.setOutputMap(j, activationFunc.activation(sumMat));
         }
     }

@@ -30,8 +30,8 @@ public class MathUtil {
     /**
      * Produce a random number in the range of [-0.05, 0.05), for weight initialization
      * */
-    public static double randomWeight() { return (rand.nextDouble() - 0.5)/10; }
-    public static double positiveRandomWeight() { return rand.nextDouble()/10; }
+    public static double randomWeight() { return (rand.nextDouble() - 0.5)/100; }
+    public static double positiveRandomWeight() { return rand.nextDouble()/100; }
 
     /**
      * Get the index of the maximum element in the array

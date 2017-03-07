@@ -21,6 +21,7 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
 //            errors[i][0][0] = CNN.activationFunc(getOutputMap(i)[0][0]) * (teacher - getOutputMap(i)[0][0]);
 //            errors[i][0][0] = CNN.activationFuncDeriv(getOutputMap(i)[0][0]) * (teacher - getOutputMap(i)[0][0]);
             errors[i][0][0] = teacher - getOutputMap(i)[0][0];
+//            errors[i][0][0] = (teacher - getOutputMap(i)[0][0]) * activationFunc.activationDeriv(getOutputMap(i)[0][0]);
         }
 
         setAllErrors(errors);
@@ -41,6 +42,12 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
             sumMat[0][0] += (-1) * this.bias[j];
 
 //            System.out.println("result for node#" + j + " " + MatrixOp.sigmoid(sumMat)[0][0]);
+
+//            if(sumMat[0][0] > 100) {
+//                System.out.println("summat for fc output");
+//                MatrixOp.printMat(sumMat);
+//                System.exit(-1);
+//            }
 
             this.setOutputMap(j, MatrixOp.sigmoid(sumMat));
 
