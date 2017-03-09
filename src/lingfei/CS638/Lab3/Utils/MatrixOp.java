@@ -16,6 +16,7 @@ public class MatrixOp {
     private static final ElementOperator reluLeaky = (value) -> MathUtil.reluLeaky(value);
     private static final ElementOperator reluLeakyDeriv = (value) -> MathUtil.reluLeakyDeriv(value);
     private static final ElementOperator zeroize = (value) -> 0;
+    private static final ElementOperator sqrt = (value) -> Math.sqrt(value);
 
     private interface BinaryElementOperator { double operateBinary(double value1, double value2); }
     private static final BinaryElementOperator add = (value1, value2) -> (value1 + value2);
@@ -82,6 +83,11 @@ public class MatrixOp {
     public static double[][] multiply(double[][] m1, double[][]m2) { return binaryElementWiseOp(m1, m2, multiply); }
 
     /**
+     * Divide the two give matrices element-wise
+     * */
+    public static double[][] divide(double[][] m1, double[][]m2) { return binaryElementWiseOp(m1, m2, divide); }
+
+    /**
      * Rotate the given matrix by 180 degrees
      * */
     public static double[][] rot180(double[][] mat) {
@@ -125,6 +131,11 @@ public class MatrixOp {
      * Set all matrix elements to zero
      * */
     public static double[][] zeroize(double[][] mat) { return elementWiseOp(mat, zeroize); }
+
+    /**
+     * Set all matrix elements to its sqrt
+     * */
+    public static double[][] sqrt(double[][] mat) { return elementWiseOp(mat, sqrt); }
 
     /**
      * Apply rectified linear operation to all matrix elements

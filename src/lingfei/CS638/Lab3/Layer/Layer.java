@@ -34,11 +34,11 @@ public abstract class Layer {
 
     protected double[] bias = null;
 
-    private double adam_beta1 = 0.9;
+    private static double adam_beta1 = 0.9;
 
-    private double adam_beta2 = 0.99;
+    private static double adam_beta2 = 0.99;
 
-    private double adam_epsilon = 0.00000001;
+    private static double adam_epsilon = 0.00000001;
 
     //Activation function for non-output layers
 //    protected Activation activationFunc = new Activation.SigmoidActivation();
@@ -63,18 +63,6 @@ public abstract class Layer {
                     }
                 }
                 this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
-
-                if(this.errors[i][0][0] > 10) {
-//                    System.out.println("error for nextlayer is fc:");
-//                    MatrixOp.printMat(this.errors[i]);
-//                    System.out.println("outmap:");
-//                    MatrixOp.printMat(this.outputMaps[i]);
-//                    System.out.println("activation derive:");
-//                    MatrixOp.printMat(activationFunc.activationDeriv(this.outputMaps[i]));
-
-
-//                    System.exit(-1);
-                }
             }
         }
         else if(nextLayer instanceof ConvolutionLayer) {
@@ -147,13 +135,11 @@ public abstract class Layer {
                     double[][] deltaKernel = new double[nextLayer.kernelSize.x][nextLayer.kernelSize.y];
                     for(int m = 0; m < this.outputMapSize.x; m ++) {
                         for(int n = 0; n < this.outputMapSize.y; n ++) {
-                            deltaKernel[m][n] += CNN.learningRate * this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
+                            deltaKernel[m][n] += this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
                         }
                     }
 
-
-
-                    nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], deltaKernel);
+                    nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], adamOptimize(nextLayer, i, j, deltaKernel));
                 }
             }
         }
@@ -163,14 +149,7 @@ public abstract class Layer {
                 for (int i = 0; i < this.outputMapsNum; i++) {
                     double[][] deltaKernel = MatrixOp.convValid(this.getOutputMap(i), nextLayer.getErrors()[j]);
 
-                    deltaKernel = MatrixOp.multiplyScalar(deltaKernel, CNN.learningRate);
-
-                    if(deltaKernel[0][0] > 10) {
-//                        System.out.println("deltaKernel for conv:");
-//                        MatrixOp.printMat(deltaKernel);
-//                        System.exit(-1);
-                    }
-                    nextLayer.setKernel(i, j, MatrixOp.add(nextLayer.getKernel(i, j), deltaKernel));
+                    nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], adamOptimize(nextLayer, i, j, deltaKernel));
                 }
             }
         }
@@ -180,6 +159,23 @@ public abstract class Layer {
         else {
             throw new RuntimeException("setHiddenLayerErrors not implemented for " + nextLayer.getClass().getSimpleName());
         }
+    }
+
+    private double[][] adamOptimize(Layer nextLayer, int i, int j, double[][] deltaKernel) {
+        nextLayer.adam_m[i][j] = MatrixOp.multiplyScalar(nextLayer.adam_m[i][j], adam_beta1);
+        double[][] decayedDeltaKernel = MatrixOp.multiplyScalar(deltaKernel, 1-adam_beta1);
+        nextLayer.adam_m[i][j] = MatrixOp.add(nextLayer.adam_m[i][j], decayedDeltaKernel);
+
+        nextLayer.adam_v[i][j] = MatrixOp.multiplyScalar(nextLayer.adam_v[i][j], adam_beta2);
+        double[][] decayedDeltaKernelSquared = MatrixOp.multiplyScalar(MatrixOp.multiply(deltaKernel, deltaKernel), (1-adam_beta2));
+        nextLayer.adam_v[i][j] = MatrixOp.add(nextLayer.adam_v[i][j], decayedDeltaKernelSquared);
+
+        double[][] biasCorrectedAdam_m = MatrixOp.multiplyScalar(nextLayer.adam_m[i][j], 1/(1-adam_beta1));
+        double[][] biasCorrectedAdam_v = MatrixOp.multiplyScalar(nextLayer.adam_v[i][j], 1/(1-adam_beta2));
+
+        double[][] divider = MatrixOp.addScalar(MatrixOp.sqrt(biasCorrectedAdam_v), adam_epsilon);
+        biasCorrectedAdam_m = MatrixOp.divide(biasCorrectedAdam_m, divider);
+        return  MatrixOp.multiplyScalar(biasCorrectedAdam_m, CNN.learningRate);
     }
 
 
