@@ -26,9 +26,19 @@ public abstract class Layer {
 
     protected double[][][][] kernels = null;        //inMapSize * outMapSize * kernelSize.x * kernelSize.y
 
+    protected double[][][][] adam_m = null;        //inMapSize * outMapSize * kernelSize.x * kernelSize.y
+
+    protected double[][][][] adam_v = null;        //inMapSize * outMapSize * kernelSize.x * kernelSize.y
+
     protected double[][][] errors = null;           //outMapNum * outMapSize.x * outMapSize.y
 
     protected double[] bias = null;
+
+    private double adam_beta1 = 0.9;
+
+    private double adam_beta2 = 0.99;
+
+    private double adam_epsilon = 0.00000001;
 
     //Activation function for non-output layers
 //    protected Activation activationFunc = new Activation.SigmoidActivation();
@@ -140,11 +150,9 @@ public abstract class Layer {
                             deltaKernel[m][n] += CNN.learningRate * this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
                         }
                     }
-                    if(deltaKernel[0][0] > 10) {
-//                        System.out.println("deltaKernel for fc:");
-//                        MatrixOp.printMat(deltaKernel);
-//                        System.exit(-1);
-                    }
+
+
+
                     nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], deltaKernel);
                 }
             }
@@ -195,7 +203,18 @@ public abstract class Layer {
 
     public void initErrors() { assert(this.outputMaps != null); this.errors = new double[outputMapsNum][outputMapSize.x][outputMapSize.y]; }
 
-    abstract public void initKernels(int inputMapsNum);
+    public void initKernels(int inputMapsNum) {
+        this.kernels = new double[inputMapsNum][outputMapsNum][][];
+        this.adam_m = new double[inputMapsNum][outputMapsNum][][];
+        this.adam_v = new double[inputMapsNum][outputMapsNum][][];
+        for(int i = 0; i < inputMapsNum; i ++) {
+            for(int j = 0; j < outputMapsNum; j ++) {
+                this.kernels[i][j] = activationFunc.getRandomMatrix(kernelSize.x, kernelSize.y);
+                this.adam_m[i][j] = new double[kernelSize.x][kernelSize.y];
+                this.adam_v[i][j] = new double[kernelSize.x][kernelSize.y];
+            }
+        }
+    }
 
 
     /* Getter methods */

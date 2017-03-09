@@ -21,16 +21,6 @@ public class FullyConnectedLayer extends Layer{
     }
 
 
-    public void initKernels(int inputMapsNum) {
-        this.kernels = new double[inputMapsNum][outputMapsNum][][];
-        for(int i = 0; i < inputMapsNum; i ++) {
-            for(int j = 0; j < outputMapsNum; j ++) {
-                this.kernels[i][j] = activationFunc.getRandomMatrix(kernelSize.x, kernelSize.y);
-            }
-        }
-    }
-
-
     public void computeOutput(Layer prevLayer) {
         //Each input element should match with one kernel element
         assert(prevLayer.outputMapSize.equals(this.kernelSize));

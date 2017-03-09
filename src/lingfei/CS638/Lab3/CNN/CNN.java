@@ -58,19 +58,21 @@ public class CNN {
         this.layers.add(new InputLayer(inputDepth,
                 new Size(inputHeight, inputWidth)));                    //params: (# of channels, size of each image)
 
-//        this.layers.add(new ConvolutionLayer(20, new Size(3, 3)));       //params: (# of filters, size of each filter)
+        this.layers.add(new ConvolutionLayer(50, new Size(3, 3)));       //params: (# of filters, size of each filter)
+        this.layers.add(new MaxPoolingLayer());
+//        this.layers.add(new ConvolutionLayer(5, new Size(3, 3)));       //params: (# of filters, size of each filter)
+//        this.layers.add(new MaxPoolingLayer());
+//        this.layers.add(new ConvolutionLayer(60, new Size(3, 3)));       //params: (# of filters, size of each filter)
 //        this.layers.add(new MaxPoolingLayer());
 //        this.layers.add(new ConvolutionLayer(20, new Size(3, 3)));       //params: (# of filters, size of each filter)
 //        this.layers.add(new MaxPoolingLayer());
 
-        this.layers.add(new ConvolutionLayer(10, new Size(3, 3)));       //params: (# of filters, size of each filter)
+//        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
 //        this.layers.add(new MaxPoolingLayer());
 //        this.layers.add(new ConvolutionLayer(20, new Size(3, 3)));       //params: (# of filters, size of each filter)
 //        this.layers.add(new MaxPoolingLayer());
 
-//        this.layers.add(new FullyConnectedLayer(10));                   //# of hidden units
-        this.layers.add(new FullyConnectedLayer(10));                   //# of hidden units
-//        this.layers.add(new FullyConnectedLayer(20));                   //# of hidden units
+        this.layers.add(new FullyConnectedLayer(100));                   //# of hidden units
         this.layers.add(outputLayer = new FCOutputLayer(6));            //# of outputs (categories)
 
         setup();
@@ -144,8 +146,10 @@ public class CNN {
                     tuneAccDecreaseCnt = 0;
                 }
                 prevTuneAcc = tuneAcc;
-
             }
+
+            double testAcc = test(this.testset, true);
+            System.out.println("Test Accuracy: " + testAcc);
 
             trainCurve.add(acc);
             tuneCurve.add(tuneAcc);
