@@ -9,14 +9,13 @@ public class MaxPoolingLayer extends Layer {
         this.kernels = new double[inputMapsNum][1][kernelSize.x][kernelSize.y];
     }
 
-    public void computeOutput(Layer prevLayer) {
-
+    public void computeOutput(Layer prevLayer, boolean isTraining) {
         //Down sampling
         for(int i = 0; i < prevLayer.outputMapsNum; i ++) {
             MatrixOp.zeroize(this.kernels[i][0]);
             for(int x = 0; x < prevLayer.outputMapSize.x; x += 2) {
                 for(int y = 0; y < prevLayer.outputMapSize.y; y += 2) {
-                    double maxVal = prevLayer.outputMaps[i][x][y];
+                    double maxVal = prevLayer.outputMaps[batchNum][i][x][y];
                     int maxX = x, maxY = y;
                     for(int m = 0; m < 2; m ++) {
                         for(int n = 0; n < 2; n ++) {
@@ -24,7 +23,7 @@ public class MaxPoolingLayer extends Layer {
                             int col = y + n;
 
                             if(row < prevLayer.outputMapSize.x && col < prevLayer.outputMapSize.y) {
-                                double val = prevLayer.outputMaps[i][row][col];
+                                double val = prevLayer.outputMaps[batchNum][i][row][col];
                                 if(val > maxVal) {
                                     maxVal = val;
                                     maxX = row;
@@ -34,7 +33,7 @@ public class MaxPoolingLayer extends Layer {
                         }
                     }
                     this.kernels[i][0][maxX][maxY] = 1;
-                    this.outputMaps[i][x/2][y/2] = maxVal;
+                    this.outputMaps[batchNum][i][x/2][y/2] = maxVal;
                 }
             }
         }

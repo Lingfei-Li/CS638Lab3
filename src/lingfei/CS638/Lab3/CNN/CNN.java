@@ -4,7 +4,6 @@ import lingfei.CS638.Lab3.Data.*;
 import lingfei.CS638.Lab3.Layer.*;
 import lingfei.CS638.Lab3.Utils.*;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +35,8 @@ public class CNN {
             this.trainset.add(record);
         }
 
+        System.out.println("trainset count: " + this.trainset.size());
+
         this.tuneset = new ArrayList<>();
         for(Instance instance : tuneset.getImages()) {
             double[][][] data = instance.getAllChannelMatrix();
@@ -59,13 +60,12 @@ public class CNN {
                 new Size(inputHeight, inputWidth)));                    //params: (# of channels, size of each image)
 
 
-//        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
-//        this.layers.add(new MaxPoolingLayer());
+        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
+        this.layers.add(new MaxPoolingLayer());
+        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
+        this.layers.add(new MaxPoolingLayer());
 
-//        this.layers.add(new ConvolutionLayer(30, new Size(3, 3)));       //params: (# of filters, size of each filter)
-//        this.layers.add(new MaxPoolingLayer());
-
-        this.layers.add(new FullyConnectedLayer(100));                   //# of hidden units
+//        this.layers.add(new FullyConnectedLayer(300));                   //# of hidden units
         this.layers.add(new FullyConnectedLayer(100));                   //# of hidden units
         this.layers.add(outputLayer = new FCOutputLayer(6));            //# of outputs (categories)
 
@@ -75,7 +75,7 @@ public class CNN {
 
 
     public void train() {
-        int maxEpoch = 1000;
+        int maxEpoch = 200;
         trainCurve = new ArrayList<>();
         tuneCurve = new ArrayList<>();
         double tuneAcc = 0;
@@ -90,29 +90,25 @@ public class CNN {
             int[][] confusionMatrix = new int[classNum][classNum];
             double acc = 0.0;
 
-            List<Integer> imageIndex = new ArrayList<>();
-            for(int i = 0; i < this.trainset.size(); i ++) {
-                imageIndex.add(i);
-            }
             Collections.shuffle(this.trainset);
-//            Collections.shuffle(imageIndex);
 
             for (int i = 0; i < this.trainset.size(); i++) {
-//                int index = imageIndex.get(i);
-//                System.out.println("Train #" + index);
-//                Record record = this.trainset.get(index);
                 Record record = this.trainset.get(i);
                 forward(record);
                 backprop(record);
-                updateParams();
-
                 int prediction = outputLayer.getPrediction();
                 confusionMatrix[record.label][prediction] ++;
                 if(prediction == record.label) {
                     acc ++;
                 }
-
-
+                Layer.batchNum ++;
+                if(Layer.batchNum == Layer.batchSize) {
+                    updateParams();
+                    Layer.batchNum = 0;
+                    for(int l = 0; l < layers.size(); l ++) {
+                        layers.get(l).resetDropoutMask();
+                    }
+                }
             }
             acc /= this.trainset.size();
             System.out.println("Train Accuracy: " + acc);
@@ -162,15 +158,11 @@ public class CNN {
         double acc = 0.0;
         for(int i = 0; i < ds.size(); i ++) {
             Record record = ds.get(i);
-            forward(record);
-            int prediction = outputLayer.getPrediction();
+            int prediction = predict(record);
             confusionMatrix[record.label][prediction] ++;
             if(prediction == record.label) {
                 acc ++;
             }
-        }
-        for(int i = 0; i < 6; i ++) {
-            System.out.println( outputLayer.getOutputMap(i)[0][0] );
         }
         acc /= ds.size();
         if(printResult) {
@@ -185,13 +177,25 @@ public class CNN {
         return acc;
     }
 
+    public int predict(Record record) {
+        this.layers.get(0).setAllOutputMaps(record.data);
+
+        for(int l = 1; l < layers.size(); l ++) {
+            Layer prevLayer = layers.get(l-1);
+            Layer curLayer = layers.get(l);
+            curLayer.computeOutput(prevLayer, false);
+        }
+        int prediction = outputLayer.getPrediction();
+        return prediction;
+    }
+
     public void forward(Record record) {
         this.layers.get(0).setAllOutputMaps(record.data);
 
         for(int l = 1; l < layers.size(); l ++) {
             Layer prevLayer = layers.get(l-1);
             Layer curLayer = layers.get(l);
-            curLayer.computeOutput(prevLayer);
+            curLayer.computeOutput(prevLayer, true);
         }
     }
 
@@ -227,6 +231,7 @@ public class CNN {
 
                 //Init kernels
                 int inputMapsNum = prevLayer.getOutputMapsNum();
+                curLayer.setInputmapNumAndSize(inputMapsNum, prevLayer.getOutputMapSize());
                 if(curLayer instanceof ConvolutionLayer) {
                     curLayer.initKernels(inputMapsNum);
                     Size curOutputMapSize = prevLayer.getOutputMapSize().minus(curLayer.getKernelSize()).plus(1);
@@ -249,6 +254,7 @@ public class CNN {
             curLayer.initOutputMaps();
             curLayer.initBias();
             curLayer.initErrors();
+            curLayer.resetDropoutMask();
         }
     }
 

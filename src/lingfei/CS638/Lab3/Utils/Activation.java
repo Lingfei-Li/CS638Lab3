@@ -9,9 +9,9 @@ public interface Activation {
     double activationDeriv(double t);
     double[][] activation(double[][] mat);
     double[][] activationDeriv(double[][] mat);
-    double getRandomWeight();
-    double[] getRandomArray(int len);
-    double[][] getRandomMatrix(int x, int y);
+    double getRandomWeight(double n_in);
+    double[] getRandomArray(int len, double n_in);
+    double[][] getRandomMatrix(int x, int y, double n_in);
 
 
     public class SigmoidActivation implements Activation {
@@ -19,9 +19,9 @@ public interface Activation {
         public double activationDeriv(double t) { return MathUtil.sigmoidDeriv(t); }
         public double[][] activation(double[][] mat) { return MatrixOp.sigmoid(mat); }
         public double[][] activationDeriv(double[][] mat) { return MatrixOp.sigmoidDeriv(mat); }
-        public double getRandomWeight() { return MathUtil.randomWeight(); }
-        public double[] getRandomArray(int len) { return MatrixOp.randomArray(len); }
-        public double[][] getRandomMatrix(int x, int y) { return MatrixOp.randomMatrix(x, y); }
+        public double getRandomWeight(double n_in) { return MathUtil.xavier_weight(n_in); }
+        public double[] getRandomArray(int len, double n_in) { return MatrixOp.randomArray(len, n_in); }
+        public double[][] getRandomMatrix(int x, int y, double n_in) { return MatrixOp.randomMatrix(x, y, n_in); }
     }
 
     public class ReluActivation implements Activation {
@@ -29,18 +29,18 @@ public interface Activation {
         public double activationDeriv(double t) { return MathUtil.reluDeriv(t); }
         public double[][] activation(double[][] mat) { return MatrixOp.relu(mat); }
         public double[][] activationDeriv(double[][] mat) { return MatrixOp.reluDeriv(mat); }
-        public double getRandomWeight() { return MathUtil.positiveRandomWeight(); }
-        public double[] getRandomArray(int len) { return MatrixOp.positiveRandomArray(len); }
-        public double[][] getRandomMatrix(int x, int y) { return MatrixOp.positiveRandomMatrix(x, y); }
+        public double getRandomWeight(double n_in) { return MathUtil.xavier_weight_positive(n_in); }
+        public double[] getRandomArray(int len, double n_in) { return MatrixOp.positiveRandomArray(len, n_in); }
+        public double[][] getRandomMatrix(int x, int y, double n_in) { return MatrixOp.positiveRandomMatrix(x, y, n_in); }
     }
     public class LeakyReluActivation implements Activation {
         public double activation(double t) { return MathUtil.reluLeaky(t); }
         public double activationDeriv(double t) { return MathUtil.reluLeakyDeriv(t); }
         public double[][] activation(double[][] mat) { return MatrixOp.reluLeaky(mat); }
         public double[][] activationDeriv(double[][] mat) { return MatrixOp.reluLeakyDeriv(mat); }
-        public double getRandomWeight() { return MathUtil.positiveRandomWeight(); }
-        public double[] getRandomArray(int len) { return MatrixOp.positiveRandomArray(len); }
-        public double[][] getRandomMatrix(int x, int y) { return MatrixOp.positiveRandomMatrix(x, y); }
+        public double getRandomWeight(double n_in) { return MathUtil.xavier_weight_positive(n_in); }
+        public double[] getRandomArray(int len, double n_in) { return MatrixOp.positiveRandomArray(len, n_in); }
+        public double[][] getRandomMatrix(int x, int y, double n_in) { return MatrixOp.positiveRandomMatrix(x, y, n_in); }
     }
 
 

@@ -20,7 +20,13 @@ public abstract class Layer {
 
     protected Size outputMapSize = null;
 
-    protected double[][][] outputMaps = null;     //outputMapsNum * outMapSize.x * outMapSize.y
+    protected int inputMapsNum = 0;
+
+    protected Size inputMapSize = null;
+
+    protected double n_in = 1;
+
+    protected double[][][][] outputMaps = null;     //batch * outputMapsNum * outMapSize.x * outMapSize.y
 
     protected Size kernelSize = null;
 
@@ -30,7 +36,7 @@ public abstract class Layer {
 
     protected double[][][][] adam_v = null;        //inMapSize * outMapSize * kernelSize.x * kernelSize.y
 
-    protected double[][][] errors = null;           //outMapNum * outMapSize.x * outMapSize.y
+    protected double[][][][] errors = null;           //batch * outMapNum * outMapSize.x * outMapSize.y
 
     protected double[] bias = null;
 
@@ -40,49 +46,54 @@ public abstract class Layer {
 
     private static double adam_epsilon = 0.00000001;
 
+    public static int batchSize = 16;
+    public static int batchNum = 0;
+
+    protected  double[][][] dropoutMask = null;
+
+//    protected  double dropoutRate = 0.5;
+    protected  double dropoutRate = 0.0;
+
     //Activation function for non-output layers
-//    protected Activation activationFunc = new Activation.SigmoidActivation();
     protected Activation activationFunc = new Activation.LeakyReluActivation();
 
 
-
     /* Different layers implement different computation method */
-    abstract public void computeOutput(Layer prevLayer);
+    abstract public void computeOutput(Layer prevLayer, boolean isTraining);
 
     public void setHiddenLayerErrors(Layer nextLayer) {
         if(nextLayer instanceof FullyConnectedLayer) {
             assert(this.outputMapSize.equals(nextLayer.kernelSize));
 
             for(int i = 0; i < this.outputMapsNum; i ++) {
-                MatrixOp.zeroize(this.errors[i]);
+                MatrixOp.zeroize(this.errors[batchNum][i]);
                 for(int j = 0; j < nextLayer.getOutputMapsNum(); j ++) {
-                    for(int m = 0; m < nextLayer.getKernelSize().x; m ++) {
-                        for(int n = 0; n < nextLayer.getKernelSize().y; n ++) {
-                            this.errors[i][m][n] += nextLayer.kernels[i][j][m][n] * nextLayer.errors[j][0][0];
-                        }
-                    }
+
+                    this.errors[batchNum][i] = MatrixOp.add( this.errors[batchNum][i],
+                            MatrixOp.multiplyScalar(
+                                    nextLayer.kernels[i][j],
+                                    nextLayer.errors[batchNum][j][0][0]
+                            ));
                 }
-                this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
+//                this.errors[batchNum][i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[batchNum][i]), this.errors[batchNum][i]);
+                this.errors[batchNum][i] = MatrixOp.multiply(
+                            MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[batchNum][i]), this.errors[batchNum][i]),
+                            dropoutMask[i]
+                        );
             }
         }
         else if(nextLayer instanceof ConvolutionLayer) {
             for(int i = 0; i < this.outputMapsNum; i ++) {
-                MatrixOp.zeroize(this.errors[i]);
+                MatrixOp.zeroize(this.errors[batchNum][i]);
                 for(int j = 0; j < nextLayer.outputMapsNum; j ++) {
 
                     double[][] rotatedKernel = MatrixOp.rot180(nextLayer.getKernel(i, j)) ;
-                    double[][] nextError = nextLayer.errors[j];
+                    double[][] nextError = nextLayer.errors[batchNum][j];
 
                     double[][] convFullResult = MatrixOp.convFull(nextError, rotatedKernel, 2);
-                    this.errors[i]  = MatrixOp.add(this.errors[i], convFullResult);
+                    this.errors[batchNum][i]  = MatrixOp.add(this.errors[batchNum][i], convFullResult);
                 }
-                this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
-
-                if(this.errors[i][0][0] > 10) {
-//                    System.out.println("error for nextlayer is conv:");
-//                    MatrixOp.printMat(this.errors[i]);
-//                    System.exit(-1);
-                }
+                this.errors[batchNum][i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[batchNum][i]), this.errors[batchNum][i]);
             }
         }
         else if(nextLayer instanceof  MaxPoolingLayer) {
@@ -93,19 +104,14 @@ public abstract class Layer {
                             for (int n = 0; n < 2; n++) {
                                 int row = x*2 + m;
                                 int col = y*2 + n;
-                                if(row < this.errors[i].length && col < this.errors[i][0].length) {
-                                    this.errors[i][row][col] = nextLayer.kernels[i][0][row][col] * nextLayer.errors[i][x][y];
+                                if(row < this.errors[batchNum][i].length && col < this.errors[batchNum][i][0].length) {
+                                    this.errors[batchNum][i][row][col] = nextLayer.kernels[i][0][row][col] * nextLayer.errors[batchNum][i][x][y];
                                 }
                             }
                         }
                     }
                 }
-                if(this.errors[i][0][0] > 10) {
-//                    System.out.println("error for nextlayer is max pool:");
-//                    MatrixOp.printMat(this.errors[i]);
-//                    System.exit(-1);
-                }
-                this.errors[i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[i]), this.errors[i]);
+                this.errors[batchNum][i] = MatrixOp.multiply(activationFunc.activationDeriv(this.outputMaps[batchNum][i]), this.errors[batchNum][i]);
             }
         }
         else {
@@ -118,7 +124,10 @@ public abstract class Layer {
             double biasError = 0.0;
             for(int m = 0; m < this.outputMapSize.x; m ++) {
                 for(int n = 0; n < this.outputMapSize.y; n ++) {
-                    biasError += this.getErrors()[i][m][n];
+                    for(int b = 0; b < batchSize; b ++) {
+                        biasError += this.errors[b][i][m][n];
+                    }
+                    biasError /= (double)batchSize;
                 }
             }
             this.bias[i] += CNN.learningRate * (-1) * biasError;
@@ -133,11 +142,14 @@ public abstract class Layer {
             for(int j = 0; j < nextLayer.outputMapsNum; j ++) {
                 for (int i = 0; i < this.outputMapsNum; i++) {
                     double[][] deltaKernel = new double[nextLayer.kernelSize.x][nextLayer.kernelSize.y];
-                    for(int m = 0; m < this.outputMapSize.x; m ++) {
-                        for(int n = 0; n < this.outputMapSize.y; n ++) {
-                            deltaKernel[m][n] += this.outputMaps[i][m][n] * nextLayer.errors[j][0][0];
+                    for(int b = 0; b < batchSize; b ++) {
+                        for(int m = 0; m < this.outputMapSize.x; m ++) {
+                            for(int n = 0; n < this.outputMapSize.y; n ++) {
+                                deltaKernel[m][n] += this.outputMaps[b][i][m][n] * nextLayer.errors[b][j][0][0];
+                            }
                         }
                     }
+                    deltaKernel = MatrixOp.divideScalar(deltaKernel, batchSize);
 
                     nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], adamOptimize(nextLayer, i, j, deltaKernel));
                 }
@@ -147,7 +159,11 @@ public abstract class Layer {
 
             for(int j = 0; j < nextLayer.outputMapsNum; j ++) {
                 for (int i = 0; i < this.outputMapsNum; i++) {
-                    double[][] deltaKernel = MatrixOp.convValid(this.getOutputMap(i), nextLayer.getErrors()[j]);
+                    double[][] deltaKernel = MatrixOp.convValid(this.outputMaps[0][i], nextLayer.errors[0][j]);
+                    for(int b = 1; b < batchSize; b ++) {
+                        deltaKernel = MatrixOp.add(deltaKernel, MatrixOp.convValid(this.outputMaps[b][i], nextLayer.errors[b][j]));
+                    }
+                    deltaKernel = MatrixOp.divideScalar(deltaKernel, batchSize);
 
                     nextLayer.kernels[i][j] = MatrixOp.add(nextLayer.kernels[i][j], adamOptimize(nextLayer, i, j, deltaKernel));
                 }
@@ -193,11 +209,11 @@ public abstract class Layer {
     }
 
     /*Initialization*/
-    public void initOutputMaps() { this.outputMaps = new double[outputMapsNum][outputMapSize.x][outputMapSize.y]; }
+    public void initOutputMaps() { this.outputMaps = new double[batchSize][outputMapsNum][outputMapSize.x][outputMapSize.y]; }
 
-    public void initBias() { assert(this.outputMaps != null); this.bias = MatrixOp.randomArray(outputMapsNum); }
+    public void initBias() { assert(this.outputMaps != null); this.bias = MatrixOp.randomArray(outputMapsNum, n_in); }
 
-    public void initErrors() { assert(this.outputMaps != null); this.errors = new double[outputMapsNum][outputMapSize.x][outputMapSize.y]; }
+    public void initErrors() { assert(this.outputMaps != null); this.errors = new double[batchSize][outputMapsNum][outputMapSize.x][outputMapSize.y]; }
 
     public void initKernels(int inputMapsNum) {
         this.kernels = new double[inputMapsNum][outputMapsNum][][];
@@ -205,7 +221,7 @@ public abstract class Layer {
         this.adam_v = new double[inputMapsNum][outputMapsNum][][];
         for(int i = 0; i < inputMapsNum; i ++) {
             for(int j = 0; j < outputMapsNum; j ++) {
-                this.kernels[i][j] = activationFunc.getRandomMatrix(kernelSize.x, kernelSize.y);
+                this.kernels[i][j] = activationFunc.getRandomMatrix(kernelSize.x, kernelSize.y, n_in);
                 this.adam_m[i][j] = new double[kernelSize.x][kernelSize.y];
                 this.adam_v[i][j] = new double[kernelSize.x][kernelSize.y];
             }
@@ -220,11 +236,7 @@ public abstract class Layer {
 
     public Size getKernelSize() { return kernelSize; }
 
-    public double[][] getOutputMap(int mapNum) { return outputMaps[mapNum]; }
-
     public double[][] getKernel(int inputMapNum, int outputMapNum) { return kernels[inputMapNum][outputMapNum]; }
-
-    public double[][][] getErrors() { return errors; }
 
 
     /* Setter methods */
@@ -232,15 +244,21 @@ public abstract class Layer {
 
     public void setOutputMapSize(Size outputMapSize) { this.outputMapSize = outputMapSize; }
 
+    public void setInputmapNumAndSize(int inputMapsNum, Size inputMapSize) {
+        this.inputMapsNum = inputMapsNum;
+        this.inputMapSize = inputMapSize;
+        this.n_in = inputMapsNum * inputMapSize.x * inputMapSize.y;
+    }
+
     public void setKernelSize(Size kernelSize) { this.kernelSize = kernelSize; }
 
-    protected void setOutputMap(int outputMapNum, double[][] outputMap) { this.outputMaps[outputMapNum] = outputMap; }
+    protected void setOutputMap(int outputMapNum, double[][] outputMap) { this.outputMaps[batchNum][outputMapNum] = outputMap; }
 
-    public void setAllOutputMaps(double[][][] outputMaps) { this.outputMapsNum = outputMaps.length; this.outputMaps = outputMaps.clone(); }
+    public void setAllOutputMaps(double[][][] outputMaps) { this.outputMapsNum = outputMaps.length; this.outputMaps[batchNum] = outputMaps.clone(); }
 
     public void setKernel(int inputMapNum, int outputMapNum, double[][] newKernel) { this.kernels[inputMapNum][outputMapNum] = newKernel; }
 
-    public void setAllErrors(double[][][] errors) { this.errors = errors; }
+    public void setAllErrors(double[][][] errors) { this.errors[batchNum] = errors; }
 
 
     public void printOutputMaps() {
@@ -252,6 +270,21 @@ public abstract class Layer {
                 }
             }
             System.out.println();
+        }
+    }
+
+
+    // fully connected layer only
+    public void resetDropoutMask() {
+        if(dropoutMask == null)  {
+            dropoutMask = new double[outputMapsNum][outputMapSize.x][outputMapSize.y];
+            for(int j = 0; j < outputMapsNum; j ++) {
+                for(int k = 0; k < outputMapSize.x; k ++) {
+                    for(int m = 0; m < outputMapSize.y; m ++) {
+                        dropoutMask[j][k][m] = 1;
+                    }
+                }
+            }
         }
     }
 

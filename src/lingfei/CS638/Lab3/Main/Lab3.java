@@ -44,6 +44,12 @@ public class Lab3 {
 	private static double eta       =    0.1, fractionOfTrainingToUse = 1.00, dropoutRate = 0.50; // To turn off drop out, set dropoutRate to 0.0 (or a neg number).
 	private static int    maxEpochs = 1000; // Feel free to set to a different value.
 
+    protected static  final double  shiftProbNumerator                = 6.0; // 6.0 is the 'default.'
+    protected static  final double  probOfKeepingShiftedTrainsetImage = (shiftProbNumerator / 48.0); // This 48 is also embedded elsewhere!
+    protected static  final boolean perturbPerturbedImages            = false;
+
+
+
 	public static void main(String[] args) {
 		String trainDirectory = "images/trainset/";
 		String  tuneDirectory = "images/tuneset/";
@@ -80,7 +86,10 @@ public class Lab3 {
         start = System.currentTimeMillis();
         loadDataset(testset, testsetDir);
         System.out.println("The  tuneset contains " + comma( testset.getSize()) + " examples.  Took " + convertMillisecondsToTimeSpan(System.currentTimeMillis() - start) + ".");
-        
+
+        Dataset trainsetExtras = new Dataset();
+        createExtraTrainSet(trainset, trainsetExtras);
+
         
         // Now train a Deep ANN.  You might wish to first use your Lab 2 code here and see how one layer of HUs does.  Maybe even try your perceptron code.
         // We are providing code that converts images to feature vectors.  Feel free to discard or modify.
@@ -130,7 +139,7 @@ public class Lab3 {
                     g.dispose();
                 }
                 
-                Instance instance = new Instance(scaledBI == null ? img : scaledBI, name.substring(0, locationOfUnderscoreImage));
+                Instance instance = new Instance(scaledBI == null ? img : scaledBI, name, name.substring(0, locationOfUnderscoreImage));
 
                 dataset.add(instance);
             } catch (IOException e) {
@@ -301,5 +310,99 @@ public class Lab3 {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+    private static void createExtraTrainSet(Dataset trainset, Dataset trainsetExtras) {
+        int count_trainsetExtrasKept = 0;
+
+        // Flipping watches will mess up the digits on the watch faces, but that probably is ok.
+        for (Instance origTrainImage : trainset.getImages()) {
+            createMoreImagesFromThisImage(origTrainImage, 1.00, trainsetExtras);
+        }
+        if (perturbPerturbedImages) {
+            Dataset copyOfExtras = new Dataset(); // Need (I think) to copy before doing the FOR loop since will add to this!
+            for (Instance perturbedTrainImage : trainsetExtras.getImages()) {
+                copyOfExtras.add(perturbedTrainImage);
+            }
+            for (Instance perturbedTrainImage : copyOfExtras.getImages()) {
+                createMoreImagesFromThisImage(perturbedTrainImage,
+                        ((perturbedTrainImage.getProvenance() == Instance.HowCreated.FlippedLeftToRight ||
+                                perturbedTrainImage.getProvenance() == Instance.HowCreated.FlippedTopToBottom)
+                                ? 3.33  // Increase the odds of perturbing flipped images a bit, since fewer of those.
+                                : 0.66) // Aim to create about one more perturbed image per originally perturbed image.
+                                / (0.5 + 6.0 + shiftProbNumerator), trainsetExtras); // The 0.5 is for the chance of flip-flopping. The 6.0 is from rotations.
+            }
+        }
+
+        int[] countOfCreatedTrainingImages = new int[Category.values().length];
+        for (Instance createdTrainImage : trainsetExtras.getImages()) {
+            // Keep more of the less common categories?
+            double probOfKeeping = 1.0;
+
+            // Trainset counts: airplanes=127, butterfly=55, flower=114, piano=61, starfish=51, watch=146
+            if      ("airplanes".equals(  createdTrainImage.getLabel())) probOfKeeping = 0.66; // No flips, so fewer created.
+            else if ("butterfly".equals(  createdTrainImage.getLabel())) probOfKeeping = 1.00; // No top-bottom flips, so fewer created.
+            else if ("flower".equals(     createdTrainImage.getLabel())) probOfKeeping = 0.66; // No top-bottom flips, so fewer created.
+            else if ("grand_piano".equals(createdTrainImage.getLabel())) probOfKeeping = 1.00; // No flips, so fewer created.
+            else if ("starfish".equals(   createdTrainImage.getLabel())) probOfKeeping = 1.00; // No top-bottom flips, so fewer created.
+            else if ("watch".equals(      createdTrainImage.getLabel())) probOfKeeping = 0.50; // Already have a lot of these.
+
+            if (random() <= probOfKeeping) {
+                countOfCreatedTrainingImages[convertCategoryStringToEnum(createdTrainImage.getLabel()).ordinal()]++;
+                count_trainsetExtrasKept++;
+                trainset.add(createdTrainImage);//	println("The trainset NOW contains " + comma(trainset.getSize()) + " examples.  Took " + convertMillisecondsToTimeSpan(System.currentTimeMillis() - start) + ".");
+            }
+        }
+        for (Category cat : Category.values()) {
+            System.out.println(" Kept " + padLeft(comma(countOfCreatedTrainingImages[cat.ordinal()]), 5) + " 'tweaked' images of " + cat + ".");
+        }
+        System.out.println("Created a total of " + comma(trainsetExtras.getSize()) + " new training examples and kept " + comma(count_trainsetExtrasKept));
+        System.out.println("The trainset NOW contains " + comma(trainset.getSize()) + " examples.");
+    }
+
+
+    private static void createMoreImagesFromThisImage(Instance trainImage, double probOfKeeping, Dataset trainsetExtras) {
+        if (!"airplanes".equals(  trainImage.getLabel()) &&  // Airplanes all 'face' right and up, so don't flip left-to-right or top-to-bottom.
+                !"grand_piano".equals(trainImage.getLabel())) {  // Ditto for pianos.
+
+            if (trainImage.getProvenance() != Instance.HowCreated.FlippedLeftToRight && random() <= probOfKeeping) trainsetExtras.add(trainImage.flipImageLeftToRight());
+
+            if (!"butterfly".equals(trainImage.getLabel()) &&  // Butterflies all have the heads at the top, so don't flip to-to-bottom.
+                    !"flower".equals(   trainImage.getLabel()) &&  // Ditto for flowers.
+                    !"starfish".equals( trainImage.getLabel())) {  // Star fish are standardized to 'point up.
+                if (trainImage.getProvenance() != Instance.HowCreated.FlippedTopToBottom && random() <= probOfKeeping) trainsetExtras.add(trainImage.flipImageTopToBottom());
+            }
+        }
+        boolean rotateImages = true;
+        if (rotateImages && trainImage.getProvenance() != Instance.HowCreated.Rotated) {
+            //    Instance rotated = origTrainImage.rotateImageThisManyDegrees(3);
+            //    origTrainImage.display2D(origTrainImage.getGrayImage());
+            //    rotated.display2D(              rotated.getGrayImage()); waitForEnter();
+
+            if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees(  3));
+            if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees( -3));
+            if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees(  4));
+            if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees( -4));
+            if (!"butterfly".equals(trainImage.getLabel()) &&  // Butterflies all have the heads at the top, so don't rotate too much.
+                    !"flower".equals(   trainImage.getLabel()) &&  // Ditto for flowers and starfish.
+                    !"starfish".equals( trainImage.getLabel())) {
+                if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees(  5));
+                if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees( -5));
+            } else {
+                if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees(  2));
+                if (random() <= probOfKeeping) trainsetExtras.add(trainImage.rotateImageThisManyDegrees( -2));
+            }
+        }
+        // Would be good to also shift and rotate the flipped examples, but more complex code needed.
+        if (trainImage.getProvenance() != Instance.HowCreated.Shifted) {
+            for (    int shiftX = -3; shiftX <= 3; shiftX++) {
+                for (int shiftY = -3; shiftY <= 3; shiftY++) {
+                    // Only keep some of these, so these don't overwhelm the flipped and rotated examples when down sampling below.
+                    if ((shiftX != 0 || shiftY != 0) && random() <= probOfKeepingShiftedTrainsetImage * probOfKeeping) trainsetExtras.add(trainImage.shiftImage(shiftX, shiftY));
+                }
+            }
+        }
+    }
 
 }

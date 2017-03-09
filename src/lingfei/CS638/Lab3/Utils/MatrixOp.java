@@ -265,37 +265,37 @@ public class MatrixOp {
         return convFull(input, kernel, pm, pn);
     }
 
-    public static double[] randomArray(int len) {
+    public static double[] randomArray(int len, double n_in) {
         double[] array = new double[len];
         for (int i = 0; i < len; i++) {
-            array[i] = MathUtil.randomWeight();
+            array[i] = MathUtil.xavier_weight(n_in);
         }
         return array;
     }
 
-    public static double[][] randomMatrix(int x, int y) {
+    public static double[][] randomMatrix(int x, int y, double n_in) {
         double[][] matrix = new double[x][y];
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                matrix[i][j] = MathUtil.randomWeight();
+                matrix[i][j] = MathUtil.xavier_weight(n_in);
             }
         }
         return matrix;
     }
 
-    public static double[] positiveRandomArray(int len) {
+    public static double[] positiveRandomArray(int len, double n_in) {
         double[] array = new double[len];
         for (int i = 0; i < len; i++) {
-            array[i] = MathUtil.positiveRandomWeight();
+            array[i] = MathUtil.xavier_weight_positive(n_in);
         }
         return array;
     }
 
-    public static double[][] positiveRandomMatrix(int x, int y) {
+    public static double[][] positiveRandomMatrix(int x, int y, double n_in) {
         double[][] matrix = new double[x][y];
         for (int i = 0; i < x; i++) {
             for (int j = 0; j < y; j++) {
-                matrix[i][j] = MathUtil.positiveRandomWeight();
+                matrix[i][j] = MathUtil.xavier_weight_positive(n_in);
             }
         }
         return matrix;

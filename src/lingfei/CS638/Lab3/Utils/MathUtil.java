@@ -30,8 +30,16 @@ public class MathUtil {
     /**
      * Produce a random number in the range of [-0.05, 0.05), for weight initialization
      * */
-    public static double randomWeight() { return (rand.nextDouble() - 0.5)/100; }
-    public static double positiveRandomWeight() { return rand.nextDouble()/100; }
+    public static double xavier_weight(double n_in) {
+        return (2*rand.nextDouble()-1) * 2/n_in;
+    }
+
+    public static double xavier_weight_positive(double n_in) {
+        return rand.nextDouble() * 2/n_in;
+    }
+
+//    public static double randomWeight() { return (rand.nextDouble() - 0.5)/100; }
+//    public static double positiveRandomWeight() { return rand.nextDouble()/100; }
 
     /**
      * Get the index of the maximum element in the array

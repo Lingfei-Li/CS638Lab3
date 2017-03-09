@@ -9,7 +9,7 @@ public class InputLayer extends Layer {
         this.outputMapSize = outputMapSize;
     }
 
-    public void computeOutput(Layer prevLayer) {
+    public void computeOutput(Layer prevLayer, boolean useDropout) {
         throw new IllegalArgumentException("computeOutput method of the input layer is unexpectedly called");
     }
 

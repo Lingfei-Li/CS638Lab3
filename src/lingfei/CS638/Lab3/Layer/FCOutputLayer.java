@@ -18,16 +18,13 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
             if(i == record.label) {
                 teacher = 1.0;
             }
-//            errors[i][0][0] = CNN.activationFunc(getOutputMap(i)[0][0]) * (teacher - getOutputMap(i)[0][0]);
-//            errors[i][0][0] = CNN.activationFuncDeriv(getOutputMap(i)[0][0]) * (teacher - getOutputMap(i)[0][0]);
-            errors[i][0][0] = teacher - getOutputMap(i)[0][0];
-//            errors[i][0][0] = (teacher - getOutputMap(i)[0][0]) * activationFunc.activationDeriv(getOutputMap(i)[0][0]);
+            errors[i][0][0] = teacher - outputMaps[batchNum][i][0][0];
         }
 
         setAllErrors(errors);
     }
 
-    public void computeOutput(Layer prevLayer) {
+    public void computeOutput(Layer prevLayer, boolean isTraining) {
         //Each input element should match with one kernel element
         assert(prevLayer.outputMapSize.equals(this.kernelSize));
 
@@ -35,19 +32,19 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
             double[][] sumMat = new double[1][1];
             sumMat[0][0] = 0.0;
             for(int i = 0; i < prevLayer.outputMapsNum; i ++) {
-                double change = MatrixOp.sum(MatrixOp.multiply(prevLayer.getOutputMap(i), this.getKernel(i, j)));
-                sumMat[0][0] += change;
+                if(isTraining) {
+                    double change = MatrixOp.sum(MatrixOp.multiply(prevLayer.outputMaps[batchNum][i], this.getKernel(i, j)));
+                    sumMat[0][0] += change;
+                }
+                else {
+                    double change = MatrixOp.sum(MatrixOp.multiply(prevLayer.outputMaps[batchNum][i],
+                            MatrixOp.multiplyScalar(this.getKernel(i, j), (1-dropoutRate))
+                            ));
+                    sumMat[0][0] += change;
+                }
             }
 
             sumMat[0][0] += (-1) * this.bias[j];
-
-//            System.out.println("result for node#" + j + " " + MatrixOp.sigmoid(sumMat)[0][0]);
-
-//            if(sumMat[0][0] > 100) {
-//                System.out.println("summat for fc output");
-//                MatrixOp.printMat(sumMat);
-//                System.exit(-1);
-//            }
 
             this.setOutputMap(j, MatrixOp.sigmoid(sumMat));
 
@@ -57,7 +54,7 @@ public class FCOutputLayer extends FullyConnectedLayer implements Layer.OutputLa
     public int getPrediction() {
         double[] output = new double[outputMapsNum];
         for(int i = 0; i < outputMapsNum; i ++) {
-            output[i] = getOutputMap(i)[0][0];
+            output[i] = outputMaps[batchNum][i][0][0];
 //            System.out.print(output[i] + " ");
         }
 //        System.out.println();

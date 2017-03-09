@@ -17,28 +17,32 @@ public class ConvolutionLayer extends Layer {
         this.activationFunc = activationFunc;
     }
 
-    public void computeOutput(Layer prevLayer) {
+    public void computeOutput(Layer prevLayer, boolean isTraining) {
         for(int j = 0; j < this.outputMapsNum; j ++) {
             double[][] curOutputMap = null;
             for(int i = 0; i < prevLayer.outputMapsNum; i ++) {
-//                MatrixOp.printMat(this.getKernel(i, j));
-//                MatrixOp.printMat(MatrixOp.convValid( prevLayer.getOutputMap(i), getKernel(i, j)));
                 if(curOutputMap == null) {
-                    curOutputMap = MatrixOp.convValid( prevLayer.getOutputMap(i), this.getKernel(i, j));
+                    if(isTraining) {
+                        curOutputMap = MatrixOp.convValid( prevLayer.outputMaps[batchNum][i], this.getKernel(i, j));
+                    }
+                    else {
+                        curOutputMap = MatrixOp.convValid( prevLayer.outputMaps[batchNum][i],
+                                MatrixOp.multiplyScalar( this.getKernel(i, j), (1-dropoutRate) )
+                        );
+                    }
                 } else {
-                    curOutputMap = MatrixOp.add(curOutputMap, MatrixOp.convValid( prevLayer.getOutputMap(i), getKernel(i, j)) );
+                    if(isTraining) {
+                        curOutputMap = MatrixOp.add(curOutputMap, MatrixOp.convValid( prevLayer.outputMaps[batchNum][i], getKernel(i, j)) );
+                    }
+                    else {
+                        curOutputMap = MatrixOp.add(curOutputMap, MatrixOp.convValid( prevLayer.outputMaps[batchNum][i],
+                                MatrixOp.multiplyScalar( this.getKernel(i, j), (1-dropoutRate))
+                        ));
+                    }
                 }
             }
 
-//            if(activationFunc.activation(curOutputMap)[j][0] > 100) {
-//                System.out.println("outputmap for conv");
-//                MatrixOp.printMat(activationFunc.activation(curOutputMap));
-////                System.exit(-1);
-//            }
             this.setOutputMap(j, activationFunc.activation(curOutputMap));
-
-//            MatrixOp.printMat(this.outputMaps[j]);
-//            MatrixOp.printMat(activationFunc.activation(this.outputMaps[j]));
         }
     }
 }

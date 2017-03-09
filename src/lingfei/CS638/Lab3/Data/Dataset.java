@@ -25,4 +25,10 @@ public class Dataset {
 	public void add(Instance inst) {
 		instances.add(inst);
 	}
+
+	public void add(Dataset ds) {
+		for(Instance inst : ds.instances) {
+			instances.add(inst);
+		}
+	}
 }
