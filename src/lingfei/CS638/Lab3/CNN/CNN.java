@@ -125,11 +125,11 @@ public class CNN {
             //Early Stopping
             tuneAcc = test(this.tuneset, true);
             System.out.println("Tune Accuracy: " + tuneAcc);
-            if(epoch > 20) {
+            if(epoch > 40) {
                 if(tuneAcc <= prevTuneAcc) {
                     tuneAccDecreaseCnt ++;
                     if( tuneAccDecreaseCnt >= maxTuneAccDecreaseCnt) {
-//                        earlyStopped = true;
+                        earlyStopped = true;
                     }
                 }
                 else {

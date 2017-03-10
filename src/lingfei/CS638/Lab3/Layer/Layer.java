@@ -51,8 +51,8 @@ public abstract class Layer {
 
     protected  double[][][] dropoutMask = null;
 
-//    protected  double dropoutRate = 0.5;
-    protected  double dropoutRate = 0.0;
+    protected  double dropoutRate = 0.5;
+//    protected  double dropoutRate = 0.0;
 
     //Activation function for non-output layers
     protected Activation activationFunc = new Activation.LeakyReluActivation();
